@@ -12,6 +12,7 @@ PoseLandmarker = mp.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
 PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
+mp_pose = mp.solutions.pose
 
 model_path = '/Users/saeromkim/pose/pose_landmarker_full.task'
 options = PoseLandmarkerOptions(
@@ -67,6 +68,18 @@ while True:
     if not pose_landmarks_list:
         continue
     landmarks = pose_landmarks_list[0]
+
+    # Calculate angle between left shoulder and right shoulder
+    left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
+                     landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+    right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
+                      landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+    radians = np.arctan2(right_shoulder[1] - left_shoulder[1], right_shoulder[0] - left_shoulder[0])
+    angle = np.abs(radians * 180.0 / np.pi)
+
+    # Display current status on the screen
+    status = "Good" if angle >= 175 else "Bad Posture"
+    cv2.putText(image, 'Status: ' + status, (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
     # Draw pose landmarks on the input image.
     annotated_image = np.copy(image)

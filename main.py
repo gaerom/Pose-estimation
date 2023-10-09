@@ -52,7 +52,6 @@ def draw_landmark(image, landmarks, pairs):
 
         image = cv2.line(image, (landmark_x_1, landmark_y_1), (landmark_x_2, landmark_y_2), colors[pair_id], 2)
 
-
 while True:
     ret, image = cap.read()
     if not ret:
@@ -69,16 +68,29 @@ while True:
         continue
     landmarks = pose_landmarks_list[0]
 
+    '''
+    ================================================================
+    
+    1. 양쪽 어깨 좌표 추출
+    2. 추출한 좌표를 이용하여 radian 각도를 계산
+        ➡️ 두 점 사이의 arctan 값을 계산, 어깨의 상대적인 위치에 따라 각도를 계산하기 위함
+        🖥 radians = np.arctan2(right_shoulder[1] - left_shoulder[1], right_shoulder[0] - left_shoulder[0])
+    3. 계산된 radian 각도를 도(degree)로 변환
+        🖥 angle = np.abs(radians * 180.0 / np.pi)
+    
+    ================================================================
+    '''
     # Calculate angle between left shoulder and right shoulder
     left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
                      landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
     right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
                       landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+
     radians = np.arctan2(right_shoulder[1] - left_shoulder[1], right_shoulder[0] - left_shoulder[0])
     angle = np.abs(radians * 180.0 / np.pi)
 
-    # Display current status on the screen
-    status = "Good" if angle >= 175 else "Bad Posture"
+    # Draw current status on the screen
+    status = "Good" if angle >= 170 else "Bad Posture"
     cv2.putText(image, 'Status: ' + status, (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
     # Draw pose landmarks on the input image.

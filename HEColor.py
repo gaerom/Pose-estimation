@@ -6,7 +6,7 @@ image = cv2.imread('./images/test2.jpeg')
 ### 원본 이미지 histogram 계산
 hist = cv2.calcHist([image], [0], None, [256], [0,256])
 plt.title('Original Image') # 원본 이미지 histogram graph 출력
-plt.plot(hist, color='r', linewidth=1), plt.show()
+plt.plot(hist, color='r', linewidth=1)
 
 
 
@@ -20,7 +20,7 @@ hsv2bgr = cv2.cvtColor(new_hsv, cv2.COLOR_HSV2BGR) # Convert to BGR
 
 hist_hsv = cv2.calcHist([hsv2bgr], [0], None, [256], [0,256]) # HSV histogram 계산
 plt.title('HSV')
-plt.plot(hist_hsv, color='r', linewidth=1), plt.show()
+plt.plot(hist_hsv, color='g', linewidth=1)
 
 
 
@@ -33,8 +33,10 @@ new_yCrCb = cv2.merge([equalY, Cr, Cb])
 yCrCb2bgr = cv2.cvtColor(new_yCrCb, cv2.COLOR_YCrCb2BGR)
 
 hist_ycrcb = cv2.calcHist([yCrCb2bgr], [0], None, [256], [0,256]) # YCrCb histogram 계산
-plt.title('yCrCb')
-plt.plot(hist_ycrcb, color='r', linewidth=1), plt.show()
+plt.title('Result')
+plt.plot(hist_ycrcb, color='b', linewidth=1)
+
+plt.show() # 겹쳐서 확인
 
 
 ### 결과 출력

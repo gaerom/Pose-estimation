@@ -4,6 +4,7 @@ from mediapipe.tasks.python import vision
 import numpy as np
 import cv2
 import colorsys
+import os
 
 # init mediapipe task
 BaseOptions = mp.tasks.BaseOptions
@@ -50,9 +51,9 @@ def draw_landmark(image, landmarks, pairs):
 
 
 
-image_path = 'sports.jpeg'
+image_path = './sports equalized image/original.png'
 image = cv2.imread(image_path)
-image = cv2.resize(image, (0, 0), fx=2, fy=2)
+image = cv2.resize(image, (0, 0), fx=4, fy=4)
 
 image_height, image_width, _ = image.shape
 
@@ -62,6 +63,11 @@ detection_result = detector.detect(mp_image)
 
 
 pose_landmarks_list = detection_result.pose_landmarks
+
+if detection_result.pose_landmarks:
+    print('yes')
+else:
+    print('no detection')
 
 landmarks = pose_landmarks_list[0]
 
@@ -75,7 +81,7 @@ radians = np.arctan2(right_shoulder[1] - left_shoulder[1], right_shoulder[0] - l
 angle = np.abs(radians * 180.0 / np.pi)
 
 
-status = "Good" if angle >= 170 else "Bad Posture"
+status = "Good" if angle >= 175 else "Bad Posture"     # 170
 font_scale = 0.5  # You can adjust this scale as needed
 font_color = (0, 0, 255)
 font_thickness = 0.5
@@ -86,5 +92,18 @@ annotated_image = np.copy(image)
 draw_landmark(annotated_image, landmarks, pairs)
 
 cv2.imshow('Image', annotated_image)
+
+
+
+### Save the result
+result_dir = './results'
+base_name = os.path.basename(image_path)
+name, ext = os.path.splitext(base_name)
+result_fname = f'result_{name}{ext}'
+
+result_path = os.path.join(result_dir, result_fname)
+
+
+cv2.imwrite(result_path, annotated_image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()

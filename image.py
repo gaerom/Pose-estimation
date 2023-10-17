@@ -1,6 +1,7 @@
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+import cvtToBGR
 import numpy as np
 import cv2
 import colorsys
@@ -103,6 +104,16 @@ result_fname = f'result_{name}{ext}'
 
 result_path = os.path.join(result_dir, result_fname)
 
+
+
+### convert to BGR
+
+output_dir = './resultBGR'
+
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+cvtToBGR.cvtImageToBGR(result_dir, output_dir)
 
 cv2.imwrite(result_path, annotated_image)
 cv2.waitKey(0)

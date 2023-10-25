@@ -1,11 +1,11 @@
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-
 import numpy as np
 import cv2
 import colorsys
 import os
+from lpFilter import create_low_pass_filter, apply_low_pass_filter
 
 # Import adjust_brightness and denoising functions
 from bright import adjust_brightness_video
@@ -17,6 +17,11 @@ PoseLandmarker = mp.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
 PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
+
+# Create a low-pass filter
+fps = 25  # Frame rate
+cutoff_frequency = 0.5  # Desired cutoff frequency
+b, a = create_low_pass_filter(fps, cutoff_frequency)
 
 # Initialize MediaPipe
 mp_pose = mp.solutions.pose
@@ -30,7 +35,6 @@ detector = vision.PoseLandmarker.create_from_options(options)
 # for drawing limbs
 pairs = list(mp.solutions.pose.POSE_CONNECTIONS)
 colors = [tuple(int(255 * i) for i in colorsys.hsv_to_rgb(x / len(pairs), 1.0, 1.0)) for x in range(len(pairs))]
-
 
 def draw_landmark(image, landmarks, pairs):
     # draw circles
@@ -57,7 +61,7 @@ def draw_landmark(image, landmarks, pairs):
 
 # Open the video file
 video_path = './images/test_video.mov'  # Specify the path to your video file
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(video_path)
 
 # Create an output video writer
 output_path = './result/output_video.mp4'
@@ -91,6 +95,7 @@ while cap.isOpened():
 
     landmarks = pose_landmarks_list[0]
 
+
     # 어깨 각도 계산
     left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
                      landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
@@ -108,6 +113,18 @@ while cap.isOpened():
 
     annotated_frame = np.copy(denoised_frame)
     draw_landmark(annotated_frame, landmarks, pairs)
+
+    # Apply low-pass filter to keypoints
+    for i in range(len(landmarks)):
+        x_values = [landmark.x for landmark in landmarks]
+        y_values = [landmark.y for landmark in landmarks]
+
+        filtered_x = apply_low_pass_filter(x_values, b, a)
+        filtered_y = apply_low_pass_filter(y_values, b, a)
+
+        for j in range(len(landmarks)):
+            landmarks[j].x = filtered_x[j]
+            landmarks[j].y = filtered_y[j]
 
     out.write(annotated_frame)
     cv2.imshow('Video', annotated_frame)

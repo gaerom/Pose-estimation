@@ -5,6 +5,11 @@ from mediapipe.tasks.python import vision
 import numpy as np
 import cv2
 import colorsys
+import os
+
+# Import adjust_brightness and denoising functions
+from bright import adjust_brightness_video
+from denoising import video_denoising
 
 # init mediapipe task
 BaseOptions = mp.tasks.BaseOptions
@@ -12,8 +17,9 @@ PoseLandmarker = mp.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
 PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
-mp_pose = mp.solutions.pose
 
+# Initialize MediaPipe
+mp_pose = mp.solutions.pose
 model_path = '/Users/saeromkim/pose/pose_landmarker_full.task'
 options = PoseLandmarkerOptions(
     base_options=BaseOptions(model_asset_path=model_path),
@@ -25,9 +31,6 @@ detector = vision.PoseLandmarker.create_from_options(options)
 pairs = list(mp.solutions.pose.POSE_CONNECTIONS)
 colors = [tuple(int(255 * i) for i in colorsys.hsv_to_rgb(x / len(pairs), 1.0, 1.0)) for x in range(len(pairs))]
 
-# initializing the webcam
-cap = cv2.VideoCapture(0)
-
 
 def draw_landmark(image, landmarks, pairs):
     # draw circles
@@ -35,7 +38,7 @@ def draw_landmark(image, landmarks, pairs):
         landmark_x = int(landmark.x * image_width)
         landmark_y = int(landmark.y * image_height)
         visibility = landmark.visibility
-        image = cv2.circle(image, (landmark_x, landmark_y), 5, (255, 255, 255), -1)
+        image = cv2.circle(image, (landmark_x, landmark_y), 20, (255, 255, 255), -1)
 
     # draw limbs
     for pair_id, pair in enumerate(pairs):
@@ -50,37 +53,45 @@ def draw_landmark(image, landmarks, pairs):
         landmark_y_2 = int(landmarks[idx2].y * image_height)
         visibility_2 = landmarks[idx1].visibility
 
-        image = cv2.line(image, (landmark_x_1, landmark_y_1), (landmark_x_2, landmark_y_2), colors[pair_id], 2)
+        image = cv2.line(image, (landmark_x_1, landmark_y_1), (landmark_x_2, landmark_y_2), colors[pair_id], 10)
 
-while True:
-    ret, image = cap.read()
+# Open the video file
+video_path = './images/test_video.mov'  # Specify the path to your video file
+cap = cv2.VideoCapture(0)
+
+# Create an output video writer
+output_path = './result/output_video.mp4'
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+out = cv2.VideoWriter(output_path, fourcc, 30.0, (int(cap.get(3)), int(cap.get(4))))
+
+while cap.isOpened():
+    ret, frame = cap.read()
     if not ret:
         break
-    image_height, image_width, _ = image.shape
 
-    # Convert the frame received from OpenCV to a MediaPipe’s Image object.
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
+    # 이미지 밝게 만들기
+    brightness_factor = 3.0
+    brightened_frame = adjust_brightness_video(frame, brightness_factor)
+
+    # 이미지 노이즈 제거
+    denoised_frame = video_denoising(brightened_frame)
+
+    image_height, image_width, _ = denoised_frame.shape
+
+    # Convert the frame to MediaPipe’s Image format
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=denoised_frame)
     detection_result = detector.detect(mp_image)
 
-    # draw pose
     pose_landmarks_list = detection_result.pose_landmarks
-    if not pose_landmarks_list:
-        continue
+
+    if detection_result.pose_landmarks:
+        print('yes')
+    else:
+        print('no detection')
+
     landmarks = pose_landmarks_list[0]
 
-    '''
-    ================================================================
-    
-    1. 양쪽 어깨 좌표 추출
-    2. 추출한 좌표를 이용하여 radian 각도를 계산
-        ➡️ 두 점 사이의 arctan 값을 계산, 어깨의 상대적인 위치에 따라 각도를 계산하기 위함
-        🖥 radians = np.arctan2(right_shoulder[1] - left_shoulder[1], right_shoulder[0] - left_shoulder[0])
-    3. 계산된 radian 각도를 도(degree)로 변환
-        🖥 angle = np.abs(radians * 180.0 / np.pi)
-    
-    ================================================================
-    '''
-    # Calculate angle between left shoulder and right shoulder
+    # 어깨 각도 계산
     left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
                      landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
     right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
@@ -89,18 +100,21 @@ while True:
     radians = np.arctan2(right_shoulder[1] - left_shoulder[1], right_shoulder[0] - left_shoulder[0])
     angle = np.abs(radians * 180.0 / np.pi)
 
-    # Draw current status on the screen
-    status = "Good" if angle >= 170 else "Bad Posture"
-    cv2.putText(image, 'Status: ' + status, (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+    status = "Good" if angle >= 175 else "Bad Posture"
+    font_scale = 0.5
+    font_color = (0, 0, 255)
+    font_thickness = 0.5
+    cv2.putText(denoised_frame, 'Status: ' + status, (10, 10), cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_color, 2, cv2.LINE_AA)
 
-    # Draw pose landmarks on the input image.
-    annotated_image = np.copy(image)
-    draw_landmark(annotated_image, landmarks, pairs)
+    annotated_frame = np.copy(denoised_frame)
+    draw_landmark(annotated_frame, landmarks, pairs)
 
-    cv2.imshow('frame', annotated_image)
-    # quit
-    if cv2.waitKey(1) == ord('q'):
+    out.write(annotated_frame)
+    cv2.imshow('Video', annotated_frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()
+out.release()
 cv2.destroyAllWindows()

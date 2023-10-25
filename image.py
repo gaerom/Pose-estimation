@@ -1,7 +1,8 @@
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-
+from bright import adjust_brightness
+from denoising import denoise_image
 
 import numpy as np
 import cv2
@@ -53,8 +54,18 @@ def draw_landmark(image, landmarks, pairs):
 
 
 
-image_path = './images/denoised.png'
-image = cv2.imread(image_path)
+image_path = './images/dark_test.jpg'
+output_brightened_image_path = './result/brightened_image.png'
+output_denoised_image_path = './result/denoised_image.png'
+
+# 이미지 밝게 만들기
+brightness_factor = 3.0
+brightened_image = adjust_brightness(image_path, brightness_factor, output_brightened_image_path)
+
+# 이미지 노이즈 제거
+denoised_image = denoise_image(output_brightened_image_path, output_denoised_image_path)
+
+image = cv2.imread(output_denoised_image_path)
 image = cv2.resize(image, (0, 0), fx=4, fy=4)
 
 image_height, image_width, _ = image.shape

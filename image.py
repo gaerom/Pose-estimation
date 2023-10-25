@@ -1,7 +1,8 @@
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-import cvtToBGR
+
+
 import numpy as np
 import cv2
 import colorsys
@@ -33,7 +34,7 @@ def draw_landmark(image, landmarks, pairs):
         landmark_x = int(landmark.x * image_width)
         landmark_y = int(landmark.y * image_height)
         visibility = landmark.visibility
-        image = cv2.circle(image, (landmark_x, landmark_y), 5, (255, 255, 255), -1)
+        image = cv2.circle(image, (landmark_x, landmark_y), 20, (255, 255, 255), -1)
 
     # draw limbs
     for pair_id, pair in enumerate(pairs):
@@ -48,11 +49,11 @@ def draw_landmark(image, landmarks, pairs):
         landmark_y_2 = int(landmarks[idx2].y * image_height)
         visibility_2 = landmarks[idx1].visibility
 
-        image = cv2.line(image, (landmark_x_1, landmark_y_1), (landmark_x_2, landmark_y_2), colors[pair_id], 2)
+        image = cv2.line(image, (landmark_x_1, landmark_y_1), (landmark_x_2, landmark_y_2), colors[pair_id], 10)
 
 
 
-image_path = './sports equalized image/original.png'
+image_path = './images/denoised.png'
 image = cv2.imread(image_path)
 image = cv2.resize(image, (0, 0), fx=4, fy=4)
 
@@ -95,26 +96,14 @@ draw_landmark(annotated_image, landmarks, pairs)
 cv2.imshow('Image', annotated_image)
 
 
-
 ### Save the result
-result_dir = './results'
+result_dir = './result'
 base_name = os.path.basename(image_path)
 name, ext = os.path.splitext(base_name)
 result_fname = f'result_{name}{ext}'
 
 result_path = os.path.join(result_dir, result_fname)
-
-
-
-### convert to BGR
-
-output_dir = './resultBGR'
-
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
-
-cvtToBGR.cvtImageToBGR(result_dir, output_dir)
-
 cv2.imwrite(result_path, annotated_image)
+
 cv2.waitKey(0)
 cv2.destroyAllWindows()

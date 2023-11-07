@@ -1,4 +1,4 @@
-![image](https://github.com/gaerom/Pose-estimation/assets/92725975/ad4909f4-074d-4a2c-b965-bc48455c6233)# Pose-estimation
+# Pose-estimation
 End-to-end process Research for Pose Estimation  
 
 ## Abstract  
